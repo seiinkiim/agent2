@@ -1,3 +1,4 @@
+
 # app.py
 # 상단에 한 줄 추가
 import re
@@ -263,7 +264,6 @@ SYSTEM_PROMPT = """# 작업 설명: 운동화 쇼핑 에이전트
 - 운동화 추천이 끝났음을 사용자에게 명확하게 알립니다.
 - 반드시 아래 문장을 그대로 출력합니다. (글자, 띄어쓰기, 문장 부호를 절대 변경하지 마세요.)
     운동화 추천이 종료되었습니다! 
-
 """
 
 # ChatPromptTemplate 구성
@@ -293,7 +293,6 @@ chain_with_memory = RunnableWithMessageHistory(
 # ---------------------------
 if len(st.session_state["messages"]) > 0:
     for role, msg in st.session_state["messages"]:
-        # assistant 메시지는 마크다운으로 렌더 → [구매링크](URL) 클릭 가능
         if role == "assistant":
             st.chat_message(role).markdown(msg)
         else:
@@ -304,18 +303,15 @@ if len(st.session_state["messages"]) > 0:
 # 입력 & 응답
 # ---------------------------
 if user_input := st.chat_input("메시지를 입력해 주세요"):
-    # 사용자 메시지 표시/저장
     st.chat_message("user").write(user_input)
     st.session_state["messages"].append(("user", user_input))
 
-    # RAG 컨텍스트 생성 (사용자 답변 요약 → 제품 설명 재작성 포함)
     history = get_session_history("abc123")
     query = build_query_from_history_and_input(history, user_input)
     rag_docs = retriever.get_relevant_documents(query)
     user_answers = summarize_user_answers(history)
     context = join_docs_with_rewrite(rag_docs, user_answers)
 
-    # 응답(스트리밍)
     with st.chat_message("assistant"):
         stream_handler = StreamHandler(st.empty())
         response = chain_with_memory.invoke(
@@ -323,12 +319,10 @@ if user_input := st.chat_input("메시지를 입력해 주세요"):
             config={"configurable": {"session_id": "abc123"}, "callbacks": [stream_handler]},
         )
 
-    # 최종 텍스트 저장
     st.session_state["messages"].append(("assistant", response))
 
-    # 응답에 종료 문구가 있으면 즉시 인증번호 출력
     if "운동화 추천이 종료되었습니다!" in response:
-        code = f"{random.randint(0, 9999):04d}"
+        code = "8172"  # ✅ 인증번호 고정
         end_msg = f"인증번호: {code}"
         st.chat_message("assistant").write(end_msg)
         st.session_state["messages"].append(("assistant", end_msg))
